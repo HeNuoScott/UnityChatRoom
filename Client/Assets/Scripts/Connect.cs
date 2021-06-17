@@ -1,12 +1,7 @@
-﻿using UnityEngine;
+﻿using UnityEngine.SceneManagement;
+using Network.NetClient;
 using UnityEngine.UI;
-using System;
-using System.Net.Sockets;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
-using NetServer.Session;
-using UnityEngine.SceneManagement;
+using UnityEngine;
 
 public class Connect : MonoBehaviour
 {

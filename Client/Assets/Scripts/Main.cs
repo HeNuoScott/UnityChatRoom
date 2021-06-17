@@ -1,11 +1,8 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using Network.NetClient;
 using UnityEngine.UI;
+using UnityEngine;
 using System;
-using System.Net.Sockets;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
-using NetServer.Session;
 
 public class Main : MonoBehaviour
 {
@@ -59,7 +56,7 @@ public class Main : MonoBehaviour
     /// </summary>
     public void Send()
     {
-        ActionParameter parameter = new ActionParameter();
+        CActionParameter parameter = new CActionParameter();
         parameter["message"] = messageInput.text;
         try
         {
@@ -90,7 +87,7 @@ public class Main : MonoBehaviour
     /// <summary>
     /// 创建消息UI
     /// </summary>
-    private void CreateMessage(ActionParameter parameter)
+    private void CreateMessage(CActionParameter parameter)
     {
         if (messageContent == null || messageTextPrefab == null)
             return;
