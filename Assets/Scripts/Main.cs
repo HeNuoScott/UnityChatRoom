@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
-using Network.NetClient;
+using Network.CommonData;
+using Network.Client;
 using UnityEngine.UI;
 using UnityEngine;
 using System;
@@ -26,7 +27,8 @@ public class Main : MonoBehaviour
 
     private void Start()
     {
-        NetClient.Instance.Session.Action.AddListener(1001, CreateMessage);
+        NetClient.Instance.Action.AddListener(ActionTypeEnum.MessageAction, CreateMessage);
+        NetClient.Instance.Action.AddListener(ActionTypeEnum.InformAction, CreateMessage);
         messagesText = new List<Text>();
     }
 
@@ -56,11 +58,11 @@ public class Main : MonoBehaviour
     /// </summary>
     public void Send()
     {
-        CActionParameter parameter = new CActionParameter();
-        parameter["message"] = messageInput.text;
+        ActionParameter parameter = new ActionParameter();
+        parameter[NetConfig.MESSAGE] = messageInput.text;
         try
         {
-            NetClient.Instance.Session.SendAction(1001, parameter);
+            NetClient.Instance.Session.SendAction(ActionTypeEnum.MessageAction, parameter);
         }
         catch (Exception e)
         {
@@ -72,7 +74,7 @@ public class Main : MonoBehaviour
     /// <summary>
     /// 清除消息列表
     /// </summary>
-    private void MessageListClear()
+    public void MessageListClear()
     {
         if (messagesText.Count > 0)
         {
@@ -87,44 +89,19 @@ public class Main : MonoBehaviour
     /// <summary>
     /// 创建消息UI
     /// </summary>
-    private void CreateMessage(CActionParameter parameter)
+    private void CreateMessage(ActionParameter parameter)
     {
-        if (messageContent == null || messageTextPrefab == null)
-            return;
+        if (messageContent == null || messageTextPrefab == null) return;
 
         Text messageText = Instantiate(messageTextPrefab);
-        messageText.text = parameter.GetValue<string>("message");
-
-        RectTransform messageRect = messageText.rectTransform;
-        messageRect.SetParent(messageContent);
-        messageRect.offsetMin = new Vector2(0, messageRect.offsetMin.y);
-        messageRect.offsetMax = new Vector2(0, messageRect.offsetMax.y);
-        messageRect.anchoredPosition = new Vector2(messageRect.anchoredPosition.x, 0);
-        messageRect.sizeDelta = new Vector2(messageRect.sizeDelta.x, messageText.preferredHeight);
-
+        messageText.text = parameter.GetValue<string>(NetConfig.MESSAGE);
+        messageText.rectTransform.SetParent(messageContent);
+        messageText.gameObject.SetActive(true);
         if (messagesText.Count >= maxMessageCount)
         {
             Destroy(messagesText[0].gameObject);
             messagesText.RemoveAt(0);
         }
-
         messagesText.Add(messageText);
-
-        for (int i = 0; i < messagesText.Count - 1; i++)
-        {
-            float height = 0;
-            for (int j = i + 1; j < messagesText.Count; j++)
-            {
-                height += messagesText[j].preferredHeight;
-            }
-            messagesText[i].rectTransform.anchoredPosition = new Vector2(messagesText[i].rectTransform.anchoredPosition.x, height);
-        }
-
-        float totalHeight = 0;
-        for (int i = 0; i < messagesText.Count; i++)
-        {
-            totalHeight += messagesText[i].preferredHeight + messageSpace;
-        }
-        messageContent.sizeDelta = new Vector2(messageContent.sizeDelta.x, totalHeight);
     }
 }

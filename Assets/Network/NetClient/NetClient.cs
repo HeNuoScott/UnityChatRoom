@@ -2,28 +2,18 @@
 using System.Net.Sockets;
 using UnityEngine;
 using System;
+using Network.CommonData;
 
-namespace Network.NetClient
+namespace Network.Client
 {
     /// <summary>
     /// 网络客户端
     /// </summary>
     public class NetClient : MonoBehaviour
     {
-        //数据缓冲区长度,默认为1024字节
-        private const int BUFFER_SIZE = 1024;
-
-        //单例
         private static NetClient instance;
-
-        //会话对象
-        private SessionClient session = new SessionClient();
-
-        //数据缓冲区
-        private byte[] readBuffer = new byte[BUFFER_SIZE];
-
-        //重连协程
-        private Coroutine reconnectCoroutine;
+        private Coroutine reconnectCoroutine;//重连协程
+        private float Timer = 0f;
 
         //单例全局访问接口
         public static NetClient Instance
@@ -34,60 +24,89 @@ namespace Network.NetClient
                 {
                     GameObject obj = new GameObject("NetClient");
                     instance = obj.AddComponent<NetClient>();
+                    DontDestroyOnLoad(instance.gameObject);
                 }
                 return instance;
             }
         }
 
-        public SessionClient Session { get { return session; } }
+        //会话对象
+        public ClientSession Session { get; private set; }
+
+        //消息事件处理助手
+        public ClientActionHandler Action { get; private set; }
 
         //主机地址
-        public string Host { get; set; }
+        public string Host { get; private set; }
 
         //主机端口
-        public int Port { get; set; }
+        public int Port { get; private set; }
+
+        //延迟
+        public int Ping { get; private set; }
+
+        //心跳间隔
+        public float HeartInterval { get; set; } = 2f;
 
         //连接超时毫秒
         public int Timeout { get; set; }
 
         private void Awake()
         {
-            hideFlags = HideFlags.HideInHierarchy & HideFlags.HideInInspector;
-            DontDestroyOnLoad(gameObject);
-
             Timeout = 3000;
-
-            Session.InitializeAction();
+            Action = new ClientActionHandler();
+            Session = new ClientSession(Action);
+            Action.AddListener(ActionTypeEnum.HeartAction, HeartPing);
         }
 
         private void Update()
         {
             //检测服务器连接断开重连
-            if (reconnectCoroutine == null && session.State == SessionState.Close)
+            if (reconnectCoroutine == null && Session.State == SessionState.Close)
+            {
                 Connect();
+            }
+
+            if (Session.State == SessionState.Run)
+            {
+                Timer -= Time.deltaTime;
+                if (Timer <= 0)
+                {
+                    Timer = HeartInterval;
+                    Session.SendHeartAction();
+                }
+            }
+
+            Action.Update();
         }
 
         private void OnDestroy()
         {
             //游戏结束关闭套接字
-            if (session != null && session.isUse)
+            if (Session != null && Session.isUse)
             {
-                session.Close();
+                Session.Close();
             }
         }
 
         /// <summary>
         /// 连接服务器
         /// </summary>
-        public void Connect()
+        public void Connect(string address, int port)
         {
-            if (session != null && session.isUse || string.IsNullOrEmpty(Host) || Port == 0)
-                return;
+            if (Session != null && Session.isUse) return;
+            Host = address;
+            Port = port;
+            if (string.IsNullOrEmpty(Host) || Port == 0) return;
+            Connect();
+        }
 
+        private void Connect()
+        {
             //创建套接字
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-            session.AsyncConnect(socket, Host, Port);
+            Session.AsyncConnect(socket, Host, Port);
 
             //启动超时重连
             if (reconnectCoroutine != null) StopCoroutine(reconnectCoroutine);
@@ -105,20 +124,24 @@ namespace Network.NetClient
             DateTime currentTime = DateTime.Now;
             while ((int)(DateTime.Now - currentTime).TotalMilliseconds < Timeout)
             {
-                if (session != null && session.isUse)
-                    break;
-                else
-                    yield return null;
+                if (Session != null && Session.isUse) break;
+                else yield return null;
             }
 
             //超时后套接字未连接则循环重连
-            if (!session.isUse)
+            if (!Session.isUse)
             {
-                session.Close();
+                Session.Close();
                 Connect();
             }
 
             reconnectCoroutine = null;
+        }
+
+        private void HeartPing(ActionParameter parameter)
+        {
+            Ping = parameter.GetValue<int>(NetConfig.PING);
+            NetLog.Log($"Ping:{Ping}");
         }
     }
 }

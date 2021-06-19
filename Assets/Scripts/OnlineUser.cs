@@ -3,7 +3,8 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using System;
-using Network.NetClient;
+using Network.Client;
+using Network.CommonData;
 
 public class OnlineUser : MonoBehaviour
 {
@@ -12,7 +13,8 @@ public class OnlineUser : MonoBehaviour
 
     void Start()
     {
-        NetClient.Instance.Session.Action.AddListener(100, UserList);
+        NetClient.Instance.Action.AddListener(ActionTypeEnum.OnlineAction, UserList);
+        // 发送上线请求
         StartCoroutine(SyncOnlineListTask());
     }
 
@@ -22,35 +24,36 @@ public class OnlineUser : MonoBehaviour
         {
             onlinePanel.gameObject.SetActive(false);
         }
-        else if (NetClient.Instance.Session.State != SessionState.Run && !onlinePanel.gameObject.activeSelf)
+        else if (NetClient.Instance.Session.State == SessionState.Run && !onlinePanel.gameObject.activeSelf)
         {
             onlinePanel.gameObject.SetActive(true);
         }
     }
 
-    private void UserList(CActionParameter parameter)
+    private void UserList(ActionParameter parameter)
     {
-        List<string> onlineList = parameter.GetValue<List<string>>("onlineList");
-        onlineListUI.text = onlineList[0];
-        for (int i = 1; i < onlineList.Count; i++)
+        List<string> onlineList = parameter.GetValue<List<string>>(NetConfig.OnlineList);
+        string localAddress = NetClient.Instance.Session.GetLocalAddress();
+        onlineListUI.text = localAddress + "\r\n";
+        for (int i = 0; i < onlineList.Count; i++)
         {
-            onlineListUI.text += "\r\n" + onlineList[i];
+            if (localAddress != onlineList[i])
+            {
+                onlineListUI.text += onlineList[i] + "\r\n";
+            }
         }
-
-        RectTransform onlineRect = onlineListUI.rectTransform;
-        onlineRect.sizeDelta = new Vector2(onlineRect.sizeDelta.x, onlineListUI.preferredHeight);
     }
 
     private IEnumerator SyncOnlineListTask()
     {
         while (true)
         {
-            yield return new WaitForEndOfFrame();
+            yield return new WaitForSeconds(1f);
             if (NetClient.Instance.Session.State == SessionState.Run)
             {
                 try
                 {
-                    NetClient.Instance.Session.SendAction(100, null);
+                    NetClient.Instance.Session.SendAction(ActionTypeEnum.OnlineAction, null);
                 }
                 catch (Exception e)
                 {
