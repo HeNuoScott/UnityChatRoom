@@ -6,7 +6,7 @@ public class ServerMain : MonoBehaviour
     private void Start()
     {
         NetServer.BuildServer();
-        NetServer.Instance.StartServer("0.0.0.0", 25565);
+        NetServer.Instance.StartServer(25565, 50);
     }
     private void Update()
     {
@@ -19,6 +19,4 @@ public class ServerMain : MonoBehaviour
     {
         NetServer.Instance.StopServer();
     }
-
-
 }

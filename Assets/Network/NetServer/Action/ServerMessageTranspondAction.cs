@@ -2,6 +2,9 @@
 
 namespace Network.Server
 {
+    /// <summary>
+    /// 消息传输事件
+    /// </summary>
     public class ServerMessageTranspondAction : ServerActionBase
     {
         public override ActionTypeEnum ActionType { get { return ActionTypeEnum.MessageAction; } }

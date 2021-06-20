@@ -13,18 +13,18 @@ public class OnlineUser : MonoBehaviour
 
     void Start()
     {
-        NetClient.Instance.Action.AddListener(ActionTypeEnum.OnlineAction, UserList);
+        NetClient.Instance.ActionAddListener(ActionTypeEnum.OnlineAction, UserList);
         // 发送上线请求
         StartCoroutine(SyncOnlineListTask());
     }
 
     void Update()
     {
-        if (NetClient.Instance.Session.State != SessionState.Run && onlinePanel.gameObject.activeSelf)
+        if (NetClient.Instance.ClientState != SessionState.Connected && onlinePanel.gameObject.activeSelf)
         {
             onlinePanel.gameObject.SetActive(false);
         }
-        else if (NetClient.Instance.Session.State == SessionState.Run && !onlinePanel.gameObject.activeSelf)
+        else if (NetClient.Instance.ClientState == SessionState.Connected && !onlinePanel.gameObject.activeSelf)
         {
             onlinePanel.gameObject.SetActive(true);
         }
@@ -33,7 +33,7 @@ public class OnlineUser : MonoBehaviour
     private void UserList(ActionParameter parameter)
     {
         List<string> onlineList = parameter.GetValue<List<string>>(NetConfig.OnlineList);
-        string localAddress = NetClient.Instance.Session.GetLocalAddress();
+        string localAddress = NetClient.Instance.LocalAddress;
         onlineListUI.text = localAddress + "\r\n";
         for (int i = 0; i < onlineList.Count; i++)
         {
@@ -49,11 +49,11 @@ public class OnlineUser : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(1f);
-            if (NetClient.Instance.Session.State == SessionState.Run)
+            if (NetClient.Instance.ClientState == SessionState.Connected)
             {
                 try
                 {
-                    NetClient.Instance.Session.SendAction(ActionTypeEnum.OnlineAction, null);
+                    NetClient.Instance.SendAction(ActionTypeEnum.OnlineAction, null);
                 }
                 catch (Exception e)
                 {

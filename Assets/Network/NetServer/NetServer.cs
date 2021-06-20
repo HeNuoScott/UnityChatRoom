@@ -11,17 +11,7 @@ namespace Network.Server
     public class NetServer 
     {
         public static NetServer Instance = null;
-
-        /// <summary>
-        /// 最大连接数
-        /// </summary>
-        public int maxSessionClient = 50;
-
-        /// <summary>
-        /// 监听套接字
-        /// </summary>
         public Socket listenSocket;
-
         public bool isOpen = false;
 
         public static NetServer BuildServer()
@@ -33,20 +23,27 @@ namespace Network.Server
             return Instance;
         }
 
+        public event Action OnServerStarted;            // 服务器 启动
+        public event Action OnServerStoped;             // 服务器 关闭
+        public event Action<string> OnHoldbackConnect;  // 客户端 链接达到上限 
+        public event Action<string> OnClientConnect;    // 客户端上线
+        public event Action<string> OnClientOffline;    // 客户端下线
+        public event Action<string> OnClientDisconnect; // 客户端意外断开链接
+
         /// <summary>
         /// 启动服务器
         /// </summary>
-        public void StartServer(string host, int port)
+        public void StartServer(int port,int maxClientCount)
         {
-            ServiceSessionPool.SetMaxSessionClient(maxSessionClient);
+            ServiceSessionPool.SetMaxSessionClient(maxClientCount);
             listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPAddress ipAddress = IPAddress.Parse(host);
-            IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, port);
+            IPEndPoint ipEndPoint = new IPEndPoint(IPAddress.Any, port);
             listenSocket.Bind(ipEndPoint);
-            listenSocket.Listen(maxSessionClient);
+            listenSocket.Listen(maxClientCount);
             listenSocket.BeginAccept(AcceptCallBack, null);
             isOpen = true;
-            NetLog.Log("服务器启动成功！");
+            OnServerStarted?.Invoke();
+            NetLog.Log($"[{GetLocalIp()}:{port}] 服务器启动成功!");
         }
 
         /// <summary>
@@ -62,6 +59,7 @@ namespace Network.Server
             {
                 session.Close();
             }
+            OnServerStoped?.Invoke();
             NetLog.Log("服务器关闭!");
         }
 
@@ -83,12 +81,12 @@ namespace Network.Server
                 if (session == null)
                 {
                     socket.Close();
-                    NetLog.Warning("警告：连接已满！");
+                    OnerviceSessionHoldbackConnect(socket.RemoteEndPoint.ToString());
                 }
                 else
                 {
                     session.Initialize(socket);
-                    NetLog.Log($"客户端连接 [{session.GetRemoteAddress()}]");
+                    OnerviceSessionConnect(session.GetRemoteAddress());
                 }
 
                 listenSocket.BeginAccept(AcceptCallBack, null);
@@ -148,6 +146,63 @@ namespace Network.Server
                     action.Clean();
                 } 
             }
+        }
+
+
+        /// <summary>
+        /// 客户端上线
+        /// </summary>
+        /// <param name="remoteAddress"></param>
+        internal void OnerviceSessionConnect(string remoteAddress)
+        {
+            OnClientConnect?.Invoke(remoteAddress);
+            NetLog.Log($"客户端连接 [{remoteAddress}]");
+        }
+
+        /// <summary>
+        /// 客户端已经达到上线数量 禁止链接
+        /// </summary>
+        internal void OnerviceSessionHoldbackConnect(string remoteAddress)
+        {
+            OnHoldbackConnect?.Invoke(remoteAddress);
+            NetLog.Warning($"警告：连接已满！[{remoteAddress}]");
+        }
+
+        /// <summary>
+        /// 客户端下线
+        /// </summary>
+        /// <param name="remoteAddress"></param>
+        internal void OnServiceSessionOffline(string remoteAddress)
+        {
+            OnClientOffline?.Invoke(remoteAddress);
+            NetLog.Log($"收到 {remoteAddress} 下线");
+        }
+
+        /// <summary>
+        /// 客户端意外断开链接
+        /// </summary>
+        /// <param name="remoteAddress"></param>
+        internal void OnServiceSessionDisconnect(string remoteAddress)
+        {
+            OnClientDisconnect?.Invoke(remoteAddress);
+            NetLog.Warning($"收到 {remoteAddress} 断开连接");
+        }
+
+        /// <summary>
+        /// 获取本机IP
+        /// </summary>
+        internal string GetLocalIp()
+        {
+            ///获取本地的IP地址
+            string AddressIP = string.Empty;
+            foreach (IPAddress _IPAddress in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
+            {
+                if (_IPAddress.AddressFamily.ToString() == "InterNetwork")
+                {
+                    AddressIP = _IPAddress.ToString();
+                }
+            }
+            return AddressIP;
         }
     }
 }

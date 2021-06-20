@@ -18,7 +18,7 @@ public class Connect : MonoBehaviour
 
     private void Update()
     {
-        if (NetClient.Instance.Session.State == SessionState.Run)
+        if (NetClient.Instance.ClientState == SessionState.Connected)
         {
             this.gameObject.SetActive(false);
         }
@@ -29,7 +29,7 @@ public class Connect : MonoBehaviour
     /// </summary>
     private void ConnectToServer()
     {
-        if (NetClient.Instance.Session.State == SessionState.Connect)
+        if (NetClient.Instance.ClientState == SessionState.Connecting)
             return;
 
         tipText.text = "正在连接服务器...";

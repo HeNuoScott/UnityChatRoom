@@ -11,8 +11,8 @@ namespace Network.Client
     public enum SessionState
     {
         None,
-        Connect,
-        Run,
+        Connecting,
+        Connected,
         Close
     }
 
@@ -56,25 +56,25 @@ namespace Network.Client
         }
 
         /// <summary>
+        /// 启动套接字异步连接
+        /// </summary>
+        public void AsyncConnect(Socket socket, string host, int port)
+        {
+            State = SessionState.Connecting;
+            this.socket = socket;
+            socket.BeginConnect(host, port, ConnectCallBack, this.socket);
+        }
+
+        /// <summary>
         /// 启动套接字异步接收
         /// </summary>
         /// <param name="socket"></param>
         public void AsyncReceive(Socket socket)
         {
-            State = SessionState.Run;
+            State = SessionState.Connected;
             this.socket = socket;
             isUse = true;
             socket.BeginReceive(readBuffer, 0, readBuffer.Length, SocketFlags.None, ReceiveCallBack, null);
-        }
-
-        /// <summary>
-        /// 启动套接字异步连接
-        /// </summary>
-        public void AsyncConnect(Socket socket, string host, int port)
-        {
-            State = SessionState.Connect;
-            this.socket = socket;
-            socket.BeginConnect(host, port, ConnectCallBack, this.socket);
         }
 
         /// <summary>
@@ -142,6 +142,7 @@ namespace Network.Client
             socket.Close();
             dynamicBuffer.Clear();
             isUse = false;
+            NetClient.Instance.OnClientConnectionBreaked();
         }
 
         /// <summary>
@@ -149,11 +150,21 @@ namespace Network.Client
         /// </summary>
         private void ConnectCallBack(IAsyncResult asyncResult)
         {
-            Socket socket = (Socket)asyncResult.AsyncState;
-            socket.EndConnect(asyncResult);
+            if (asyncResult.IsCompleted)//链接成功
+            {
+                Socket socket = (Socket)asyncResult.AsyncState;
+                socket.EndConnect(asyncResult);
 
-            //开始异步接收数据
-            AsyncReceive(socket);
+                //开始异步接收数据
+                AsyncReceive(socket);
+
+                NetClient.Instance.OnClientConnectionSuccess();
+            }
+            else//链接失败
+            {
+                NetClient.Instance.OnClientConnectionFailed();
+            }
+
         }
 
         /// <summary>
@@ -166,7 +177,6 @@ namespace Network.Client
                 int count = socket.EndReceive(asyncResult);
                 if (count <= 0)
                 {
-                    Debug.Log("服务器断开连接");
                     Close();
                     return;
                 }

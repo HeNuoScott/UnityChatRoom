@@ -4,7 +4,7 @@ using Network.CommonData;
 namespace Network.Client
 {
     /// <summary>
-    /// 消息转发
+    /// 消息传输事件
     /// </summary>
     public class ClientMessageTranspondAction : ClientActionBase
     {

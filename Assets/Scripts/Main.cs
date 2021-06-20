@@ -27,24 +27,24 @@ public class Main : MonoBehaviour
 
     private void Start()
     {
-        NetClient.Instance.Action.AddListener(ActionTypeEnum.MessageAction, CreateMessage);
-        NetClient.Instance.Action.AddListener(ActionTypeEnum.InformAction, CreateMessage);
+        NetClient.Instance.ActionAddListener(ActionTypeEnum.MessageAction, CreateMessage);
+        NetClient.Instance.ActionAddListener(ActionTypeEnum.InformAction, CreateMessage);
         messagesText = new List<Text>();
     }
 
     private void Update()
     {
-        switch (NetClient.Instance.Session.State)
+        switch (NetClient.Instance.ClientState)
         {
             case SessionState.None:
                 break;
-            case SessionState.Connect:
+            case SessionState.Connecting:
                 serverText.text = "";
                 clientText.text = "正在连接中...";
                 break;
-            case SessionState.Run:
-                serverText.text = NetClient.Instance.Session.GetRemoteAddress();
-                clientText.text = NetClient.Instance.Session.GetLocalAddress();
+            case SessionState.Connected:
+                serverText.text = NetClient.Instance.RemoteAddress;
+                clientText.text = NetClient.Instance.LocalAddress;
                 break;
             case SessionState.Close:
                 serverText.text = "";
@@ -62,7 +62,7 @@ public class Main : MonoBehaviour
         parameter[NetConfig.MESSAGE] = messageInput.text;
         try
         {
-            NetClient.Instance.Session.SendAction(ActionTypeEnum.MessageAction, parameter);
+            NetClient.Instance.SendAction(ActionTypeEnum.MessageAction, parameter);
         }
         catch (Exception e)
         {

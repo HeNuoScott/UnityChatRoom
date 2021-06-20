@@ -89,7 +89,7 @@ namespace Network.Server
                 int count = socket.EndReceive(asyncResult);
                 if (count <= 0)
                 {
-                    NetLog.Warning($"收到 {GetRemoteAddress()} 断开连接");
+                    NetServer.Instance.OnServiceSessionOffline(GetRemoteAddress());
                     Close();
                     return;
                 }
@@ -108,7 +108,7 @@ namespace Network.Server
             }
             catch (Exception)
             {
-                NetLog.Warning($"收到 {GetRemoteAddress()} 断开连接");
+                NetServer.Instance.OnServiceSessionDisconnect(GetRemoteAddress());
                 Close();
             }
         }

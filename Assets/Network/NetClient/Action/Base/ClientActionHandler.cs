@@ -6,15 +6,15 @@ using System;
 namespace Network.Client
 {
     /// <summary>
+    /// 处理模块委托
+    /// </summary>
+    public delegate void HandleModule(ActionParameter parameter);
+
+    /// <summary>
     /// 数据处理分发
     /// </summary>
     public class ClientActionHandler
     {
-        /// <summary>
-        /// 处理模块委托
-        /// </summary>
-        public delegate void HandleModule(ActionParameter parameter);
-
         /// <summary>
         /// 处理类型列表
         /// </summary>
@@ -54,24 +54,17 @@ namespace Network.Client
             }
         }
 
-        public void Update()
+        public void HandlerUpdate()
         {
             lock (invokeQueue)
             {
                 while (invokeQueue.Count > 0)
                 {
-                    HandleInvoke(invokeQueue.Dequeue());
+                    ActionParameter parameter = invokeQueue.Dequeue();
+                    ActionTypeEnum handleType = (ActionTypeEnum)parameter.GetValue<int>(NetConfig.ACTIONTYPE);
+                    handles[handleType](parameter);
                 }
             }
-        }
-
-        /// <summary>
-        /// 调用处理
-        /// </summary>
-        private void HandleInvoke(ActionParameter parameter)
-        {
-            ActionTypeEnum handleType = (ActionTypeEnum)parameter.GetValue<int>(NetConfig.ACTIONTYPE);
-            handles[handleType](parameter);
         }
 
         /// <summary>
@@ -79,13 +72,9 @@ namespace Network.Client
         /// </summary>
         public void AddListener(ActionTypeEnum actionType, HandleModule listener)
         {
-            if (!handles.ContainsKey(actionType))
-                return;
-
-            if (handles[actionType] == null)
-                handles[actionType] = new HandleModule(listener);
-            else
-                handles[actionType] += listener;
+            if (!handles.ContainsKey(actionType)) return;
+            if (handles[actionType] == null) handles[actionType] = new HandleModule(listener);
+            else handles[actionType] += listener;
         }
 
         /// <summary>
@@ -93,8 +82,7 @@ namespace Network.Client
         /// </summary>
         public void RemoveListener(ActionTypeEnum actionType, HandleModule listener)
         {
-            if (!handles.ContainsKey(actionType))
-                return;
+            if (!handles.ContainsKey(actionType))return;
 
             HandleModule module = handles[actionType];
             if (module != null)
@@ -120,7 +108,9 @@ namespace Network.Client
             parameter[NetConfig.ACTIONTYPE] = action.ActionType;
             action.Packet = packet;
             if (action.ReceiveProcess(parameter) && handler != null)
+            {
                 lock (invokeQueue) invokeQueue.Enqueue(parameter);
+            }
             action.Clean();
         }
 

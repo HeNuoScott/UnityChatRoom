@@ -12,6 +12,8 @@ namespace Network.Client
     public class NetClient : MonoBehaviour
     {
         private static NetClient instance;
+        private ClientSession Session = null;
+        private ClientActionHandler Action = null;
         private Coroutine reconnectCoroutine;//重连协程
         private float Timer = 0f;
 
@@ -29,25 +31,23 @@ namespace Network.Client
                 return instance;
             }
         }
-
-        //会话对象
-        public ClientSession Session { get; private set; }
-
-        //消息事件处理助手
-        public ClientActionHandler Action { get; private set; }
-
+        public event Action OnConnectionSuccess;        // 链接成功
+        public event Action OnConnectionFailed;         // 链接失败
+        public event Action OnConnectionBreaked;        // 链接中断
+        // 客户端状态
+        public SessionState ClientState { get { return Session.State; } }
+        //服务器地址
+        public string RemoteAddress { get { return Session.GetRemoteAddress(); } }
+        //本地客户端地址
+        public string LocalAddress { get { return Session.GetLocalAddress(); } }
         //主机地址
         public string Host { get; private set; }
-
         //主机端口
         public int Port { get; private set; }
-
         //延迟
         public int Ping { get; private set; }
-
         //心跳间隔
         public float HeartInterval { get; set; } = 2f;
-
         //连接超时毫秒
         public int Timeout { get; set; }
 
@@ -67,7 +67,7 @@ namespace Network.Client
                 Connect();
             }
 
-            if (Session.State == SessionState.Run)
+            if (Session.State == SessionState.Connected)
             {
                 Timer -= Time.deltaTime;
                 if (Timer <= 0)
@@ -77,7 +77,7 @@ namespace Network.Client
                 }
             }
 
-            Action.Update();
+            Action.HandlerUpdate();
         }
 
         private void OnDestroy()
@@ -101,7 +101,31 @@ namespace Network.Client
             Connect();
         }
 
-        private void Connect()
+        /// <summary>
+        /// 绑定数据处理模块
+        /// </summary>
+        public void ActionAddListener(ActionTypeEnum actionType, HandleModule listener)
+        {
+            Action.AddListener(actionType, listener);
+        }
+
+        /// <summary>
+        /// 移除绑定数据处理模块
+        /// </summary>
+        public void ActionRemoveListener(ActionTypeEnum actionType, HandleModule listener)
+        {
+            Action.RemoveListener(actionType, listener);
+        }
+
+        /// <summary>
+        /// 发送指定类型处理消息
+        /// </summary>
+        public void SendAction(ActionTypeEnum actionType, ActionParameter parameter)
+        {
+            Session.SendAction(actionType, parameter);
+        }
+
+        internal void Connect()
         {
             //创建套接字
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -118,7 +142,7 @@ namespace Network.Client
         /// </summary>
         /// <param name="timeoutLength"></param>
         /// <returns></returns>
-        private IEnumerator AsyncConnectTimeout()
+        internal IEnumerator AsyncConnectTimeout()
         {
             //每帧检测套接字是否连接
             DateTime currentTime = DateTime.Now;
@@ -138,10 +162,40 @@ namespace Network.Client
             reconnectCoroutine = null;
         }
 
-        private void HeartPing(ActionParameter parameter)
+        /// <summary>
+        /// 心跳监测
+        /// </summary>
+        internal void HeartPing(ActionParameter parameter)
         {
             Ping = parameter.GetValue<int>(NetConfig.PING);
             NetLog.Log($"Ping:{Ping}");
+        }
+
+        /// <summary>
+        /// 客户端连接成功
+        /// </summary>
+        internal void OnClientConnectionSuccess()
+        {
+            OnConnectionSuccess?.Invoke();
+            NetLog.Log("客户端连接成功");
+        }
+
+        /// <summary>
+        /// 客户端连接失败
+        /// </summary>
+        internal void OnClientConnectionFailed()
+        {
+            OnConnectionFailed?.Invoke();
+            NetLog.Log("客户端连接失败");
+        }
+
+        /// <summary>
+        /// 客户端连接中断
+        /// </summary>
+        internal void OnClientConnectionBreaked()
+        {
+            OnConnectionBreaked?.Invoke();
+            NetLog.Log("客户端连接中断");
         }
     }
 }
