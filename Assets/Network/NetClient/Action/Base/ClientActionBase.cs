@@ -19,12 +19,12 @@ namespace Network.Client
         public DataPackage Packet { get; set; }
 
         /// <summary>
-        /// 发送过程
+        /// 发送过程(将Parameter数据 装入Packet)
         /// </summary>
         public abstract bool SendProcess(ActionParameter parameter);
 
         /// <summary>
-        /// 接收过程
+        /// 接收过程(提取Packet数据到Parameter)
         /// </summary>
         public abstract bool ReceiveProcess(ActionParameter parameter);
 
