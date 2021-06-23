@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using UnityEngine;
 using System;
 using Network.CommonData;
+using System.Collections.Generic;
 
 namespace Network.Client
 {
@@ -34,6 +35,10 @@ namespace Network.Client
         public event Action OnConnectionSuccess;        // 链接成功
         public event Action OnConnectionFailed;         // 链接失败
         public event Action OnConnectionBreaked;        // 链接中断
+        /// <summary>
+        /// 调用队列
+        /// </summary>
+        private Queue<string> invokeQueue = new Queue<string>();
         // 客户端状态
         public SessionState ClientState { get { return Session.State; } }
         //服务器地址
@@ -78,6 +83,22 @@ namespace Network.Client
             }
 
             Action.HandlerUpdate();
+
+            lock (invokeQueue)
+            {
+                while (invokeQueue.Count > 0)
+                {
+                    string action = invokeQueue.Dequeue();
+                    switch (action)
+                    {
+                        case "OnConnectionSuccess": OnConnectionSuccess?.Invoke(); break;
+                        case "OnConnectionFailed": OnConnectionFailed?.Invoke(); break;
+                        case "OnConnectionBreaked": OnConnectionBreaked?.Invoke(); break;
+                        default: break;
+                    }
+                }
+            }
+
         }
 
         private void OnDestroy()
@@ -176,7 +197,7 @@ namespace Network.Client
         /// </summary>
         internal void OnClientConnectionSuccess()
         {
-            OnConnectionSuccess?.Invoke();
+            lock (invokeQueue) invokeQueue.Enqueue("OnConnectionSuccess");
             NetLog.Log("客户端连接成功");
         }
 
@@ -185,7 +206,7 @@ namespace Network.Client
         /// </summary>
         internal void OnClientConnectionFailed()
         {
-            OnConnectionFailed?.Invoke();
+            lock (invokeQueue) invokeQueue.Enqueue("OnConnectionFailed");
             NetLog.Log("客户端连接失败");
         }
 
@@ -194,7 +215,7 @@ namespace Network.Client
         /// </summary>
         internal void OnClientConnectionBreaked()
         {
-            OnConnectionBreaked?.Invoke();
+            lock (invokeQueue) invokeQueue.Enqueue("OnConnectionBreaked");
             NetLog.Log("客户端连接中断");
         }
     }

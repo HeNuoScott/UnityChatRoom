@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Net;
 using System;
+using System.Collections.Generic;
 
 namespace Network.Server
 {
@@ -147,7 +148,6 @@ namespace Network.Server
                 } 
             }
         }
-
 
         /// <summary>
         /// 客户端上线
