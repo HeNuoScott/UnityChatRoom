@@ -25,11 +25,14 @@ namespace Network.Server
 
             ActionParameter parameter = new ActionParameter();
             ServerActionBase handler = actions[packet.PacketType];
+
             handler.Packet = packet;
-            if (handler.Check(parameter))
+            if (handler.ReceiveCheck(parameter))
             {
                 if (!handler.Process(parameter))
+                {
                     NetLog.Log($"{packet.PacketType}请求处理失败");
+                }
             }
 
             handler.Clean();

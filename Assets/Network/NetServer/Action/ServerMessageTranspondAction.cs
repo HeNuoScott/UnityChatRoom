@@ -9,7 +9,7 @@ namespace Network.Server
     {
         public override ActionTypeEnum ActionType { get { return ActionTypeEnum.MessageAction; } }
 
-        public override bool Check(ActionParameter parameter)
+        public override bool ReceiveCheck(ActionParameter parameter)
         {
             string message = null;
             if (Packet.Data.TryReadString(ref message))

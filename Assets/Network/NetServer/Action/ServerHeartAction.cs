@@ -8,8 +8,12 @@ namespace Network.Server
     public class ServerHeartAction : ServerActionBase
     {
         public override ActionTypeEnum ActionType => ActionTypeEnum.HeartAction;
-
-        public override bool Check(ActionParameter parameter)
+        /// <summary>
+        /// 接收消息检测
+        /// </summary>
+        /// <param name="parameter"></param>
+        /// <returns></returns>
+        public override bool ReceiveCheck(ActionParameter parameter)
         {
             string timestamp = null;
             if (Packet.Data.TryReadString(ref timestamp))

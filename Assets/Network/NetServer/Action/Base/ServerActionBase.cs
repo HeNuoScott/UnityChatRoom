@@ -26,7 +26,7 @@ namespace Network.Server
         /// <summary>
         /// 验证数据包(检测Packet中是否包含指定数据,如果包含就装入parameter)
         /// </summary>
-        public abstract bool Check(ActionParameter parameter);
+        public abstract bool ReceiveCheck(ActionParameter parameter);
 
         /// <summary>
         /// 逻辑处理过程(建议把要发送的parameter重新封装一个DataPackage,并用Session发送)

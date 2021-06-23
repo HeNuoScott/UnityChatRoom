@@ -6,15 +6,12 @@ namespace Network.Server
     {
         public override ActionTypeEnum ActionType { get { return ActionTypeEnum.InformAction; } }
 
-        public override bool Check(ActionParameter parameter)
+        /// <summary>
+        /// 系统消息 一般由服务器只接下发 服务器不接收这类消息
+        /// </summary>
+        public override bool ReceiveCheck(ActionParameter parameter)
         {
-            string message = null;
-            if (Packet.Data.TryReadString(ref message))
-            {
-                parameter[NetConfig.MESSAGE] = message;
-                return true;
-            }
-            return false;
+            return true;
         }
 
         public override object Clone()

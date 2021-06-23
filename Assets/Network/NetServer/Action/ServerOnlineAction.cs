@@ -10,7 +10,10 @@ namespace Network.Server
     {
         public override ActionTypeEnum ActionType { get { return ActionTypeEnum.OnlineAction; } }
 
-        public override bool Check(ActionParameter parameter)
+        /// <summary>
+        /// 参数可为空 只接认为接受数据正常
+        /// </summary>
+        public override bool ReceiveCheck(ActionParameter parameter)
         {
             return true;
         }

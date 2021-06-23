@@ -10,11 +10,6 @@ namespace Network.Client
     {
         public override ActionTypeEnum ActionType => ActionTypeEnum.MessageAction;
 
-        public override void Clean()
-        {
-            base.Clean();
-        }
-
         public override bool ReceiveProcess(ActionParameter parameter)
         {
             string message = null;

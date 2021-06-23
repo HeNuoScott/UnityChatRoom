@@ -101,23 +101,14 @@ namespace Network.Server
         /// <summary>
         /// 广播消息系统通知
         /// </summary>
-        public void BroadCast(string mssage)
+        public void BroadCast(string message)
         {
-            DynamicBuffer buffer = new DynamicBuffer(0);
-            buffer.WriteObject(mssage);
-            DataPackage packet = new DataPackage(buffer, ActionTypeEnum.InformAction);
-
             foreach (var session in ServiceSessionPool.GetOnlineSession())
             {
                 ServerActionBase action = ServerActionFactory.CreateAction(ActionTypeEnum.InformAction, session);
                 ActionParameter parameter = new ActionParameter();
-
-                action.Packet = packet;
-                if (action.Check(parameter))
-                {
-                    bool processResult = action.Process(parameter);
-                    if (!processResult) NetLog.Log($"{packet.PacketType}广播处理失败!!");
-                }
+                parameter[NetConfig.MESSAGE] = message;
+                if (!action.Process(parameter)) NetLog.Log($"消息:{message},广播处理失败!!");
                 action.Clean();
             }
         }
@@ -126,26 +117,16 @@ namespace Network.Server
         /// 发送给指定会话消息
         /// </summary>
         /// <param name="mssage"></param>
-        public void SendSessionMessage(string remoteAddress, string mssage)
+        public void SendAction(string remoteAddress, ActionTypeEnum actionType, ActionParameter parameter)
         {
-            DynamicBuffer buffer = new DynamicBuffer(0);
-            buffer.WriteObject(mssage);
-            DataPackage packet = new DataPackage(buffer, ActionTypeEnum.MessageAction);
-
             foreach (var session in ServiceSessionPool.GetOnlineSession())
             {
-                if (remoteAddress== session.GetRemoteAddress())
+                if (remoteAddress == session.GetRemoteAddress())
                 {
-                    ServerActionBase action = ServerActionFactory.CreateAction(ActionTypeEnum.MessageAction, session);
-                    ActionParameter parameter = new ActionParameter();
-                    action.Packet = packet;
-                    if (action.Check(parameter))
-                    {
-                        bool processResult = action.Process(parameter);
-                        if (!processResult) NetLog.Log($"{packet.PacketType}服务器指定消息发送失败!!");
-                    }
+                    ServerActionBase action = ServerActionFactory.CreateAction(actionType, session);
+                    if (!action.Process(parameter)) NetLog.Log($"服务器发送:{actionType}消息,到用户:{remoteAddress}失败!!");
                     action.Clean();
-                } 
+                }
             }
         }
 
